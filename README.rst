@@ -37,7 +37,7 @@ make import not at the top of the file.
 .. code-block:: python
 
     from typing import Union
-    from proxied import Proxy
+    from proxy import Proxy
     from config import Config, load_config
 
     config: Union[Config, Proxy] = Proxy()
@@ -66,7 +66,7 @@ the inner should be set later with a help of ``proxy.set_inner`` method.
 
 .. code-block:: python
 
-    from proxied import Proxy
+    from proxy import Proxy
     proxy = Proxy()
     proxy.set_inner({})
     proxy["test_key"] = 10
@@ -76,7 +76,7 @@ It's possible to set values for multiple proxies.
 
 .. code-block:: python
 
-    from proxied import Proxy
+    from proxy import Proxy
     proxies = [Proxy(), Proxy(), Proxy(), Proxy()]
     values = [10, 11, list(), dict()]
     Proxy.set_proxies(proxies, values)
@@ -85,7 +85,7 @@ There is a check, if proxy is initialized with proxied value
 
 .. code-block:: python
 
-    from proxied import Proxy
+    from proxy import Proxy
     proxy = Proxy()
 
     if not proxy.initialized:
@@ -96,7 +96,7 @@ Example
 -------
 .. code-block:: python
 
-    from proxied import Proxy
+    from proxy import Proxy
     class NotAvailableDuringImport:
         @property
         def data(self):
