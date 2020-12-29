@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "proxied"
+version = "0.1.0"
+description = "A simple to use proxy for python objects"
+authors = [
+    "Oleksii Petrenko <oleksiiypetrenko@gmail.com>",
+    "Ilya Krokhmalyov <jad7kii@gmail.com>"
+]
+packages = [{include = "proxy.py"}]
+
+license = "MIT"
+
+readme = "README.rst"
+
+repository = "https://github.com/Enacero/proxied"
+
+keywords = ["proxy", "lazy"]
+
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed"
+]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+
+[tool.poetry.dev-dependencies]
+black = {version = "^20.8b1", allow-prereleases = true}
+flakehell = "^0.7.1"
+tox = "^3.20.1"
+mypy = "^0.790"
+pytest = "^6.2.1"
+pytest-mock = "^3.4.0"
+
+[tool.flakehell]
+base = ["https://raw.githubusercontent.com/life4/flakehell/master/pyproject.toml"]
+exclude = ["venv/", ".tox", "README.rst"]
+max_line_length = 90
+show_source = true
+
+[tool.black]
+line-length = 90
+exclude = """/(.tox|venv)/"""
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,26 @@
+language: python
+python:
+- '3.6'
+- '3.7'
+- '3.8'
+- '3.9'
+before_install:
+- pip install poetry
+install:
+- poetry install
+
+script:
+- poetry run coverage run --source proxy.py -m pytest test.py
+before_deploy:
+- poetry build -f sdist
+- poetry config pypi-token.pypi $PYPI_TOKEN
+
+deploy:
+  provider: script
+  script: poetry publish
+  skip_cleanup: true
+  on:
+    tags: true
+env:
+  global:
+    secure: CPLOpvToMvb/H5yOFsMEIksiR4fBIUKV4Gbd6yHIZd4ztq6UIk2LB1S8p6koF+b1wY1YppugPUGDNDMaFPpshF9YzEvnxQu46WVITGK8XkS6BcfUS9hhjrFm71qsgjNHFuoyGtO0c0FVfDHYyHAEzxfqzoKRTpVZkePESIDQHKfEpJdyWMAb/yxuQAA1qi3cEbKtEsd/0FUu8CbKSvyh5eacIqTR+rX3DecUf6fNt5+9lCPQ0UafduF+AwQnfCgX5z5y56bhIvBTzijCZIYX3+xwGtOfx5Vh4D8WeP9xbPWNte2hDAuSBIAgZxRNrpYjKihGYSw9HaA2k/tpyX314FpspKT0SLCu22EAoXMTbq4pwTBIxBF7+1R8do72rmWB2ooeapI/MpmRKDqgwiBeOvtLYYWeSY3n1BQlailMKufXCoRzAcu4Sb8DpyafKdDdrMuL1pDdhlyDAjTl+sxJ5BtkS9bnMY0MdU7PDkYDmM/z4Wizj0u8EwJHsp3k2F+jwboamVOdIaWgJtqMWSJwYeVVfL+hZdglZ/FPZDtgXFDsV1GoHgzHHN49g8QS+k+QrHDeGob/IWIF4npvCFajOBt5lh+Q9jwZTSFW8bCgYvQrt+Ay9dW5PPd+I0v1aXbs1l3Zz4z+NgGvHinkHHcR9MUafcfcD40mrc3DEX3uo5Q=
