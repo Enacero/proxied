@@ -24,6 +24,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.6"
+coverage = "^5.3.1"
 
 [tool.poetry.dev-dependencies]
 black = {version = "^20.8b1", allow-prereleases = true}

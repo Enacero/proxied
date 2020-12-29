@@ -8,13 +8,13 @@ before_install:
 - pip install poetry
 install:
 - poetry install
-
 script:
 - poetry run coverage run --source proxy.py -m pytest test.py
 before_deploy:
 - poetry build -f sdist
 - poetry config pypi-token.pypi $PYPI_TOKEN
-
+after_success:
+- bash <(curl -s https://codecov.io/bash)
 deploy:
   provider: script
   script: poetry publish
