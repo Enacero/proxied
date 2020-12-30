@@ -21,6 +21,17 @@ def test_inner_constructor_init():
     assert proxy == INT_TEST_VALUE
 
 
+def test_both_init_raises():
+    with pytest.raises(ValueError):
+        Proxy(INT_TEST_VALUE, lambda: INT_TEST_VALUE)
+
+
+def test_access_to_not_initialized():
+    proxy = Proxy()
+    with pytest.raises(ValueError):
+        assert not proxy.data
+
+
 def test_set_inner():
     proxy = Proxy()
     proxy.set_inner(INT_TEST_VALUE)
@@ -122,6 +133,15 @@ def test_descriptors():
 
     assert proxy.data == INT_TEST_VALUE
 
+    proxy = Proxy(property)
+
+    class Test:
+        @proxy
+        def data(self):
+            return INT_TEST_VALUE
+
+    assert Test().data == INT_TEST_VALUE
+
 
 def test_list():
     proxy = Proxy([INT_TEST_VALUE, INT_TEST_VALUE_PLUS_1])
@@ -197,3 +217,25 @@ def test_builtin_math():
     assert math.ceil(proxy) == math.ceil(INT_TEST_VALUE)
     assert math.floor(proxy) == math.floor(INT_TEST_VALUE)
     assert math.trunc(proxy) == math.trunc(INT_TEST_VALUE)
+
+
+def _fuck(proxied):
+    return proxied
+
+
+def test_return_proxy():
+    class TestA:
+        def __init__(self):
+            self._proxied = Proxy()
+
+        def get_proxy(self):
+            return self._proxied
+
+    class TestB:
+        _proxied = Proxy()
+
+        def get_proxy(self):
+            return self._proxied
+
+    _fuck(TestA().get_proxy())
+    _fuck(TestB().get_proxy())
