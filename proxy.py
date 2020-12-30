@@ -50,7 +50,6 @@ class Proxy(Generic[T]):
         "__eq__",
         "__ne__",
         "__hash__",
-        "__bool__",
         "__dir__",
         # Attribute Access
         "__setattr__",
@@ -199,6 +198,23 @@ class Proxy(Generic[T]):
             return _get_proxy_field(self, name)
 
         return getattr(_get_proxy_field(self, Proxy.CONSTRUCT_FIELD)(), name)
+
+    def __bool__(self):
+        try:
+            try:
+                return getattr(
+                    _get_proxy_field(self, Proxy.CONSTRUCT_FIELD)(), "__bool__"
+                )()
+            except AttributeError:
+                pass
+            try:
+                return bool(
+                    getattr(_get_proxy_field(self, Proxy.CONSTRUCT_FIELD)(), "__len__")()
+                )
+            except AttributeError:
+                return True
+        except ValueError:
+            return False
 
     @staticmethod
     def set_proxies(proxies: List["Proxy"], values: List[Any]) -> None:
