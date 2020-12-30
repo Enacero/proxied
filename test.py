@@ -21,6 +21,17 @@ def test_inner_constructor_init():
     assert proxy == INT_TEST_VALUE
 
 
+def test_both_init_raises():
+    with pytest.raises(ValueError):
+        Proxy(INT_TEST_VALUE, lambda: INT_TEST_VALUE)
+
+
+def test_access_to_not_initialized():
+    proxy = Proxy()
+    with pytest.raises(ValueError):
+        assert not proxy.data
+
+
 def test_set_inner():
     proxy = Proxy()
     proxy.set_inner(INT_TEST_VALUE)
