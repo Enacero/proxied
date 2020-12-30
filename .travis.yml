@@ -10,16 +10,22 @@ install:
 - poetry install
 script:
 - poetry run coverage run --source proxy -m pytest test.py
-before_deploy:
-- poetry build
 after_success:
 - bash <(curl -s https://codecov.io/bash)
-deploy:
-  provider: script
-  script: poetry publish
-  skip_cleanup: true
-  on:
-    tags: true
+jobs:
+  include:
+    - stage: deploy
+      python: 3.8
+      before_install: pip install poetry
+      install: poetry install
+      script: poetry run coverage run --source proxy -m pytest test.py
+      before_deploy: poetry build
+      deploy:
+        provider: script
+        script: poetry publish
+        skip_cleanup: true
+        on:
+          tags: true
 env:
   global:
     secure: FrB6CiYtGyj2IR8cXjsObOffteGKxInrhgax4SKx4crvKk949ap3tvBjPo1fmteGez7gwy6VtD1gE75HVtsB3JIprRWm9/PQA6TFqUxlESDiCfHXzUlTybyfpk9/wAk8qj3jz/13jJASrQUIRQJEyfe9YlmqT7BmBB5h7HDf5IB8dFehe3ajeyuF0+lVy7v9CkzrM02+qaKqq5OWl0bOkW6s/eo7euj9s0DRBVsXhEjs+1l1QcEajwNhWYsjDdOUoUYcvZKEWrxVmH/Q0Fn6HpgwwTmgyEMEyESi3GlGja+ehfpgt1Alnu4U082bF6Xg6mWKL7yOzyItKZ6YqSvRWG+hLz1PQfkKYvT9vbZd2ZtEXrc6X0EAAw/YF/kDj59/bwnKkiaQFHND2wiYPEYHBsgzjc9ddKDlTe6mjB8XWLUEY5nggj9q0pSqUfnnEzClR1qjOgrFd3laCKGIH1Gp+GotMSchsctYrCVUJEMRidQSusICrgOTxhyVDvq7HU3i/DOXKFsm7pG3s6LFh2iGjxJvOKpR8Sv1f/jSMSdLJS74oNQZJIDoYOrVMXZE5ETAHBbTuTXpvEVSk4DfpB16562aXWKY9Tg56x5c3idMLOuMW0v4EN+UVENoxxAqtDtCT1QOD7lfzcbjCz0oIs2xLM9jxJ/Vv2bD81jTiIT6Q9Y=

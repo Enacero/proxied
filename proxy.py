@@ -52,10 +52,6 @@ class Proxy(Generic[T]):
         "__hash__",
         "__bool__",
         "__dir__",
-        # Descriptors
-        "__get__",
-        "__set__",
-        "__delete__",
         # Attribute Access
         "__setattr__",
         "__delattr__",
