@@ -117,6 +117,25 @@ def test_bool():
     proxy = Proxy(INT_TEST_VALUE)
     assert bool(proxy) == bool(INT_TEST_VALUE)
 
+    class Test:
+        pass
+
+    proxy = Proxy(Test())
+    assert bool(proxy)
+
+    class Test:
+        def __init__(self, val):
+            self.val = [] if not val else [val]
+
+        def __len__(self):
+            return len(self.val)
+
+    proxy = Proxy(Test(0))
+    assert not proxy
+
+    proxy = Proxy(Test(INT_TEST_VALUE))
+    assert proxy
+
 
 def test_dir():
     proxy = Proxy(INT_TEST_VALUE)
