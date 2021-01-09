@@ -11,12 +11,12 @@ STR_TEST_VALUE = "10"
 
 
 def test_inner_init():
-    proxy = Proxy(inner=INT_TEST_VALUE)
+    proxy = Proxy(value=INT_TEST_VALUE)
     assert proxy == INT_TEST_VALUE
 
 
-def test_inner_constructor_init():
-    proxy = Proxy(inner_constructor=lambda: INT_TEST_VALUE)
+def test_value_provider_init():
+    proxy = Proxy(value_provider=lambda: INT_TEST_VALUE)
 
     assert proxy == INT_TEST_VALUE
 
@@ -34,20 +34,47 @@ def test_access_to_not_initialized():
 
 def test_set_inner():
     proxy = Proxy()
-    proxy.set_inner(INT_TEST_VALUE)
+    Proxy.set_value(proxy, INT_TEST_VALUE)
     assert proxy == INT_TEST_VALUE
 
 
 def test_get_inner():
     proxy = Proxy(INT_TEST_VALUE)
-    assert proxy.get_inner()() == INT_TEST_VALUE
+    assert Proxy.get_value(proxy) == INT_TEST_VALUE
 
 
 def test_initialized():
     proxy = Proxy()
-    assert not proxy.initialized
-    proxy.set_inner(INT_TEST_VALUE)
-    assert proxy.initialized
+    assert not Proxy.initialized(proxy)
+    Proxy.set_value(proxy, INT_TEST_VALUE)
+    assert Proxy.initialized(proxy)
+
+
+def test_cached():
+    first = Proxy()
+    second = Proxy()
+
+    class Fib:
+        def __init__(self, first, second):
+            self.first = first
+            self.second = second
+
+        def __call__(self, *args, **kwargs):
+            next = self.first + self.second
+            self.second = self.first
+            self.first = next
+            return next
+
+    fib = Fib(first, second)
+    fib_func = Proxy(value_provider=fib, cached=False)
+    Proxy.set_value(first, 0)
+    Proxy.set_value(second, 1)
+
+    assert fib_func == 1
+    assert fib_func == 1
+    assert fib_func == 2
+    assert fib_func == 3
+    assert fib_func == 5
 
 
 def test_set_proxies():
@@ -63,7 +90,7 @@ def test_set_proxies():
 
 def test_expensive_constructor_called_once(mocker):
     expensive = mocker.Mock()
-    proxy = Proxy(inner_constructor=expensive)
+    proxy = Proxy(value_provider=expensive)
     assert not proxy == INT_TEST_VALUE
     assert not proxy == STR_TEST_VALUE
     expensive.assert_called_once()
@@ -183,7 +210,7 @@ def test_dict():
     with pytest.raises(KeyError):
         _ = proxy[INT_TEST_VALUE_PLUS_1]
 
-    assert next(iter(proxy)) == next(iter(proxy.get_inner()()))
+    assert next(iter(proxy)) == next(iter(Proxy.get_value(proxy)))
 
 
 def test_numeric_operations():

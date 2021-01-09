@@ -1,19 +1,19 @@
-from typing import Any, List, Callable, TypeVar, Generic, Iterable, Optional
+from typing import Any, List, Callable, TypeVar, Generic, Optional, Set
 
 __all__ = ("Proxy",)
 
 T = TypeVar("T")
 
 
-class _lazy_call:
-    STONE = object()
+class _LazyCall:
+    NULL_OBJECT = object()
 
     def __init__(self, fn: Callable[..., T]):
         self.fn = fn
-        self.value = _lazy_call.STONE
+        self.value = _LazyCall.NULL_OBJECT
 
     def __call__(self):
-        if self.value is _lazy_call.STONE:
+        if self.value is _LazyCall.NULL_OBJECT:
             self.value = self.fn()
         return self.value
 
@@ -29,19 +29,19 @@ def _get_proxy_field(proxy: "Proxy[T]", name: str) -> Callable[..., T]:
     return object.__getattribute__(proxy, name)
 
 
+_CONSTRUCT_FIELD: str = "_value_provider"
+
+_proxy_attrs: Set[str] = {
+    "_set_provider",
+    "_get_provider",
+    _CONSTRUCT_FIELD,
+}
+
+
 class Proxy(Generic[T]):
-    CONSTRUCT_FIELD: str = "_constructor"
+    CONSTRUCT_FIELD = _CONSTRUCT_FIELD
 
-    proxy_attrs: Iterable[str] = (
-        "proxy_attrs",
-        "initialized",
-        "set_inner",
-        "get_inner",
-        CONSTRUCT_FIELD,
-        "set_proxies",
-    )
-
-    _magic_methods: Iterable[str] = (
+    _magic_methods: Set[str] = {
         # Rich Comparisons
         "__gt__",
         "__ge__",
@@ -65,7 +65,7 @@ class Proxy(Generic[T]):
         "__reversed__",
         "__contains__",
         # Numeric operations
-        "__add__",
+        # "__add__",
         "__sub__",
         "__mul__",
         "__matmul__",
@@ -132,46 +132,47 @@ class Proxy(Generic[T]):
         "__repr__",
         "__bytes__",
         "__call__",
-    )
+    }
 
     def __init__(
-        self, inner: T = None, inner_constructor: Callable[[], Optional[T]] = None
+        self,
+        value: T = None,
+        value_provider: Callable[[], Optional[T]] = None,
+        cached=True,
     ):
         """
         Proxy class
-        :param inner: value that should be proxied
-        :param inner_constructor: callable, that returns object that should be proxied
+        :param value: object that should be proxied
+        :param value_provider: callable, that returns object that should be proxied
+        :param cached: bool, set False if you wants to call value_provider
+            every time on access to proxy
         """
-        if inner and inner_constructor:
+        if value and value_provider:
             raise ValueError("There should be one of obj or constructor, not both.")
 
         def _wrapper() -> Optional[T]:
-            return inner
+            return value
 
-        if inner:
-            inner_constructor = _wrapper
-        elif inner_constructor:
-            inner_constructor = _lazy_call(inner_constructor)
+        if value:
+            value_provider = _wrapper
+        elif value_provider:
+            value_provider = _LazyCall(value_provider) if cached else value_provider
         else:
-            inner_constructor = _error_func
+            value_provider = _error_func
 
-        object.__setattr__(self, Proxy.CONSTRUCT_FIELD, inner_constructor)
+        object.__setattr__(self, Proxy.CONSTRUCT_FIELD, value_provider)
 
     __slots__ = [CONSTRUCT_FIELD, "__weakref__"]
 
-    @property
-    def initialized(self) -> bool:
-        """Check that proxy is initialized, and is ready to work"""
-        return _get_proxy_field(self, Proxy.CONSTRUCT_FIELD) is not _error_func
-
-    def set_inner(self, inner: T) -> None:
-        """Set inner value
-        @param inner: inner value, that should be proxied by proxy
+    def _set_provider(self, value_provider: Callable, cached=True) -> None:
+        """Set value
+        @param value: value, that should be proxied by proxy
         """
-        object.__setattr__(self, Proxy.CONSTRUCT_FIELD, lambda: inner)
+        provider = _LazyCall(value_provider) if cached else value_provider
+        object.__setattr__(self, Proxy.CONSTRUCT_FIELD, provider)
 
-    def get_inner(self) -> Callable[..., T]:
-        """Get inner constructor"""
+    def _get_provider(self) -> Callable[..., T]:
+        """Get proxied value"""
         return _get_proxy_field(self, Proxy.CONSTRUCT_FIELD)
 
     @classmethod
@@ -193,8 +194,12 @@ class Proxy(Generic[T]):
         new_type = type(cls.__name__, (cls,), namespace)
         return object.__new__(new_type)
 
+    # TODO convert all magics to methods
+    def __add__(self, other):
+        return _get_proxy_field(self, Proxy.CONSTRUCT_FIELD)() + other
+
     def __getattribute__(self, name):
-        if name in _get_proxy_field(self, "proxy_attrs"):
+        if name in _proxy_attrs:
             return _get_proxy_field(self, name)
 
         return getattr(_get_proxy_field(self, Proxy.CONSTRUCT_FIELD)(), name)
@@ -217,6 +222,19 @@ class Proxy(Generic[T]):
             return False
 
     @staticmethod
+    def set_value(proxy: "Proxy", value: Any, cached=True):
+        provider = value if callable(value) else lambda: value
+        proxy._set_provider(provider, cached)
+
+    @staticmethod
+    def get_value(proxy: "Proxy"):
+        return proxy._get_provider()()
+
+    @staticmethod
+    def initialized(proxy: "Proxy"):
+        return proxy._get_provider() is not _error_func
+
+    @staticmethod
     def set_proxies(proxies: List["Proxy"], values: List[Any]) -> None:
         """Set inner values to proxies.
         @param proxies: list of proxy, to set inner value
@@ -226,4 +244,4 @@ class Proxy(Generic[T]):
             raise ValueError("Length of proxies and length or values must be equal")
 
         for proxy, value in zip(proxies, values):
-            proxy.set_inner(value)
+            Proxy.set_value(proxy, value)
