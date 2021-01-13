@@ -1,4 +1,4 @@
-from contextlib import contextmanager
+import copy
 import math
 import pytest
 
@@ -77,6 +77,18 @@ def test_cached():
     assert fib_func == 5
 
 
+def test__dict__():
+    class Test:
+        pass
+
+    proxy = Proxy()
+    with pytest.raises(AttributeError):
+        proxy.__dict__
+
+    Proxy.set_value(proxy, Test())
+    assert proxy.__dict__ == {}
+
+
 def test_set_proxies():
     proxies = [Proxy(), Proxy(), Proxy()]
     values = [INT_TEST_VALUE_MINUS_1, INT_TEST_VALUE, INT_TEST_VALUE_PLUS_1]
@@ -99,17 +111,27 @@ def test_expensive_constructor_called_once(mocker):
 def test_with():
     glob_dict = {}
 
-    @contextmanager
-    def test_func():
-        glob_dict[INT_TEST_VALUE] = INT_TEST_VALUE
-        yield glob_dict
-        del glob_dict[INT_TEST_VALUE]
+    class Test:
+        def __enter__(self):
+            glob_dict[INT_TEST_VALUE] = INT_TEST_VALUE
+            return glob_dict
 
-    proxy = Proxy(test_func)
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            del glob_dict[INT_TEST_VALUE]
 
-    with proxy() as value:
+    proxy = Proxy(Test())
+    with proxy as value:
         assert value[INT_TEST_VALUE] == INT_TEST_VALUE
     assert not len(glob_dict.items())
+
+
+def test_conversions():
+    proxy = Proxy(STR_TEST_VALUE)
+    assert int(proxy) == int(STR_TEST_VALUE)
+    assert float(proxy) == float(STR_TEST_VALUE)
+    assert complex(proxy) == complex(STR_TEST_VALUE)
+    Proxy.set_value(proxy, INT_TEST_VALUE)
+    assert hex(proxy) == hex(INT_TEST_VALUE)
 
 
 def test_comparisons():
@@ -165,7 +187,11 @@ def test_bool():
 
 
 def test_dir():
-    proxy = Proxy(INT_TEST_VALUE)
+    proxy = Proxy()
+
+    assert dir(proxy) == []
+
+    Proxy.set_value(proxy, INT_TEST_VALUE)
     assert dir(proxy) == dir(INT_TEST_VALUE)
 
 
@@ -212,6 +238,14 @@ def test_dict():
 
     assert next(iter(proxy)) == next(iter(Proxy.get_value(proxy)))
 
+    del proxy[INT_TEST_VALUE]
+
+
+def test_next():
+    proxy = Proxy(iter([INT_TEST_VALUE]))
+
+    assert next(proxy) == INT_TEST_VALUE
+
 
 def test_numeric_operations():
     proxy = Proxy(INT_TEST_VALUE)
@@ -237,7 +271,7 @@ def test_reverse_numeric_operations():
     assert 2 * proxy == 2 * INT_TEST_VALUE
     assert 2 / proxy == 2 / INT_TEST_VALUE
 
-    # Not working assert 2 // proxy == 2 // INT_TEST_VALUE
+    assert 2 // proxy == 2 // INT_TEST_VALUE
 
     assert 2 % proxy == 2 % INT_TEST_VALUE
     assert divmod(2, proxy) == divmod(2, INT_TEST_VALUE)
@@ -263,9 +297,10 @@ def test_builtin_math():
     assert math.ceil(proxy) == math.ceil(INT_TEST_VALUE)
     assert math.floor(proxy) == math.floor(INT_TEST_VALUE)
     assert math.trunc(proxy) == math.trunc(INT_TEST_VALUE)
+    assert abs(proxy) == abs(INT_TEST_VALUE)
 
 
-def _fuck(proxied):
+def _test_func(proxied):
     return proxied
 
 
@@ -283,5 +318,22 @@ def test_return_proxy():
         def get_proxy(self):
             return self._proxied
 
-    _fuck(TestA().get_proxy())
-    _fuck(TestB().get_proxy())
+    _test_func(TestA().get_proxy())
+    _test_func(TestB().get_proxy())
+
+
+def test_copy():
+    value = {INT_TEST_VALUE: [INT_TEST_VALUE]}
+    proxy = Proxy(value)
+    assert copy.copy(proxy) is not Proxy.get_value(proxy)
+    assert copy.copy(proxy) == Proxy.get_value(proxy)
+
+
+def test_attrs():
+    class Test:
+        pass
+
+    proxy = Proxy(Test())
+    proxy.x = INT_TEST_VALUE
+    assert proxy.x == INT_TEST_VALUE
+    del proxy.x
