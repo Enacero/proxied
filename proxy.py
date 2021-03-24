@@ -82,21 +82,18 @@ class Proxy(Generic[T]):
         :param cached: set False if you wants to call value_provider
             every time on access to proxy
         """
-        provider = value if callable(value) else lambda: value
-        proxy._set_provider(provider, cached)
+        proxy._set_provider(lambda: value, cached)
 
     @staticmethod
-    def set_value_provider(
-        proxy: "Proxy", value_provider: Callable, cached: bool = True
-    ) -> None:
+    def set_provider(proxy: "Proxy", provider: Callable, cached: bool = True) -> None:
         """Set callable, that on call return values to be proxied
 
         :param proxy: Proxy object
-        :param value_provider: value provider that can produce proxied values
+        :param provider: value provider that can produce proxied values
         :param cached: set False if you wants to call value_provider
             every time on access to proxy
         """
-        proxy._set_provider(value_provider, cached)
+        proxy._set_provider(provider, cached)
 
     @staticmethod
     def get_value(proxy: "Proxy") -> Any:
@@ -139,7 +136,7 @@ class Proxy(Generic[T]):
             raise ValueError("Providers must be callable")
 
         for proxy, provider in zip(proxies, providers):
-            Proxy.set_value_provider(proxy, provider, cached)
+            Proxy.set_provider(proxy, provider, cached)
 
     __slots__ = [CONSTRUCT_FIELD, "__weakref__"]
 
