@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "proxied"
-version = "1.0.0"
+version = "1.0.1"
 description = "A simple to use proxy for python objects"
 authors = [
     "Oleksii Petrenko <oleksiiypetrenko@gmail.com>",
