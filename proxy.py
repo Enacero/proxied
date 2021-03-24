@@ -48,13 +48,14 @@ class Proxy(Generic[T]):
         self,
         value: T = None,
         value_provider: Callable[[], Optional[T]] = None,
-        cached=True,
+        cached: bool = True,
     ):
         """
         Proxy class
+
         :param value: object that should be proxied
         :param value_provider: callable, that returns object that should be proxied
-        :param cached: bool, set False if you wants to call value_provider
+        :param cached: set False if you wants to call value_provider
             every time on access to proxy
         """
         if value and value_provider:
@@ -72,17 +73,88 @@ class Proxy(Generic[T]):
 
         object.__setattr__(self, Proxy.CONSTRUCT_FIELD, value_provider)
 
+    @staticmethod
+    def set_value(proxy: "Proxy", value: Any, cached: bool = True) -> None:
+        """Set inner value to proxy
+
+        :param proxy: Proxy object
+        :param value: value, that must be set
+        :param cached: set False if you wants to call value_provider
+            every time on access to proxy
+        """
+        provider = value if callable(value) else lambda: value
+        proxy._set_provider(provider, cached)
+
+    @staticmethod
+    def set_value_provider(
+        proxy: "Proxy", value_provider: Callable, cached: bool = True
+    ) -> None:
+        """Set callable, that on call return values to be proxied
+
+        :param proxy: Proxy object
+        :param value_provider: value provider that can produce proxied values
+        :param cached: set False if you wants to call value_provider
+            every time on access to proxy
+        """
+        proxy._set_provider(value_provider, cached)
+
+    @staticmethod
+    def get_value(proxy: "Proxy") -> Any:
+        """Returns value from proxy"""
+        return proxy._get_provider()()
+
+    @staticmethod
+    def is_initialized(proxy: "Proxy") -> bool:
+        """Check, whether proxy is initialized with value or value constructor"""
+        return proxy._get_provider() is not _error_func
+
+    @staticmethod
+    def set_proxies_values(proxies: List["Proxy"], values: List[Any]) -> None:
+        """Set inner values to proxies.
+
+        :param proxies: list of proxies, to set inner values
+        :param values: list of inner values to set on proxies
+        """
+        if not len(proxies) == len(values):
+            raise ValueError("Length of proxies and length or values must be equal")
+
+        for proxy, value in zip(proxies, values):
+            Proxy.set_value(proxy, value)
+
+    @staticmethod
+    def set_proxies_providers(
+        proxies: List["Proxy"], providers: List[Callable], cached: bool = True
+    ) -> None:
+        """Set value providers to proxies.
+
+        :param proxies: list of proxies, to set value providers
+        :param providers: list of value providers to set on proxies
+        :param cached: set False if you wants to call value_provider
+            every time on access to proxy
+        """
+        if not len(proxies) == len(providers):
+            raise ValueError("Length of proxies and length or values must be equal")
+
+        if not all(callable(provider) for provider in providers):
+            raise ValueError("Providers must be callable")
+
+        for proxy, provider in zip(proxies, providers):
+            Proxy.set_value_provider(proxy, provider, cached)
+
     __slots__ = [CONSTRUCT_FIELD, "__weakref__"]
 
-    def _set_provider(self, value_provider: Callable, cached=True) -> None:
-        """Set value
-        @param value: value, that should be proxied by proxy
+    def _set_provider(self, value_provider: Callable, cached: bool = True) -> None:
+        """Set value of proxy
+        :param value_provider: Callable, that after return must return value,
+            that will be stored in proxy
+        :param cached: set False if you wants to call value_provider
+            every time on access to proxy
         """
         provider = _LazyCall(value_provider) if cached else value_provider
         object.__setattr__(self, Proxy.CONSTRUCT_FIELD, provider)
 
     def _get_provider(self) -> Callable[..., T]:
-        """Get proxied value"""
+        """Get value provider"""
         return _get_proxy_field(self, Proxy.CONSTRUCT_FIELD)
 
     @property
@@ -284,7 +356,7 @@ class Proxy(Generic[T]):
 
         return getattr(_get_proxy_field(self, Proxy.CONSTRUCT_FIELD)(), name)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         try:
             try:
                 return getattr(
@@ -300,28 +372,3 @@ class Proxy(Generic[T]):
                 return True
         except ValueError:
             return False
-
-    @staticmethod
-    def set_value(proxy: "Proxy", value: Any, cached=True):
-        provider = value if callable(value) else lambda: value
-        proxy._set_provider(provider, cached)
-
-    @staticmethod
-    def get_value(proxy: "Proxy"):
-        return proxy._get_provider()()
-
-    @staticmethod
-    def initialized(proxy: "Proxy"):
-        return proxy._get_provider() is not _error_func
-
-    @staticmethod
-    def set_proxies(proxies: List["Proxy"], values: List[Any]) -> None:
-        """Set inner values to proxies.
-        @param proxies: list of proxy, to set inner value
-        @param values: list of inner values to set on proxy
-        """
-        if not len(proxies) == len(values):
-            raise ValueError("Length of proxies and length or values must be equal")
-
-        for proxy, value in zip(proxies, values):
-            Proxy.set_value(proxy, value)

@@ -45,9 +45,9 @@ def test_get_inner():
 
 def test_initialized():
     proxy = Proxy()
-    assert not Proxy.initialized(proxy)
+    assert not Proxy.is_initialized(proxy)
     Proxy.set_value(proxy, INT_TEST_VALUE)
-    assert Proxy.initialized(proxy)
+    assert Proxy.is_initialized(proxy)
 
 
 def test_cached():
@@ -89,15 +89,33 @@ def test__dict__():
     assert proxy.__dict__ == {}
 
 
-def test_set_proxies():
+def test_set_proxies_values():
     proxies = [Proxy(), Proxy(), Proxy()]
     values = [INT_TEST_VALUE_MINUS_1, INT_TEST_VALUE, INT_TEST_VALUE_PLUS_1]
-    Proxy.set_proxies(proxies, values)
+    Proxy.set_proxies_values(proxies, values)
     for proxy, value in zip(proxies, values):
         assert proxy == value
 
     with pytest.raises(ValueError):
-        Proxy.set_proxies(proxies, [1, 2])
+        Proxy.set_proxies_values(proxies, [1, 2])
+
+
+def test_set_proxies_providers():
+    proxies = [Proxy(), Proxy(), Proxy()]
+    values = [
+        lambda: INT_TEST_VALUE_MINUS_1,
+        lambda: INT_TEST_VALUE,
+        lambda: INT_TEST_VALUE_PLUS_1,
+    ]
+    Proxy.set_proxies_providers(proxies, values)
+    for proxy, value in zip(proxies, values):
+        assert proxy == value()
+
+    with pytest.raises(ValueError):
+        Proxy.set_proxies_providers(proxies, values[:2])
+
+    with pytest.raises(ValueError):
+        Proxy.set_proxies_providers(proxies, [1, 2, 3])
 
 
 def test_expensive_constructor_called_once(mocker):
